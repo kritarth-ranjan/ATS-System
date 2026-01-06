@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI/ML Resume ATS Analyzer</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <h1>
+                <svg class="icon-large" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                    <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+                </svg>
+                AI/ML Resume ATS Analyzer
+            </h1>
+            <p class="subtitle">Optimize your resume for Data Science, ML, AI, and Generative AI roles</p>
+        </header>
+
+        <!-- Upload Section -->
+        <div class="card">
+            <form id="upload-form" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label for="job-role">Select Job Role</label>
+                    <select id="job-role" name="job_role" required>
+                        {% for key, role in job_roles.items() %}
+                        <option value="{{ key }}">{{ role.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="upload-area" id="upload-area">
+                    <input type="file" id="resume-file" name="resume" accept=".pdf" required>
+                    <div class="upload-content">
+                        <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="17 8 12 3 7 8"></polyline>
+                            <line x1="12" y1="3" x2="12" y2="15"></line>
+                        </svg>
+                        <p class="upload-text">Upload Your Resume (PDF)</p>
+                        <p class="upload-subtext">Click to browse or drag and drop</p>
+                        <p class="file-name" id="file-name"></p>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-primary" id="analyze-btn">
+                    Analyze Resume
+                </button>
+            </form>
+
+            <div class="loading" id="loading" style="display: none;">
+                <div class="spinner"></div>
+                <p>Analyzing your resume...</p>
+            </div>
+        </div>
+
+        <!-- Results Section -->
+        <div id="results" style="display: none;">
+            <!-- Overall Score -->
+            <div class="card score-card">
+                <h2>ATS Score</h2>
+                <div class="score-display">
+                    <div class="score-circle" id="score-circle">
+                        <div class="score-value" id="overall-score">0</div>
+                        <div class="score-label">out of 100</div>
+                    </div>
+                    <div class="score-status" id="score-status"></div>
+                </div>
+            </div>
+
+            <!-- Detailed Scores -->
+            <div class="score-grid">
+                <div class="score-item">
+                    <div class="score-header">
+                        <span>Keyword Match</span>
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                        </svg>
+                    </div>
+                    <div class="score-value-large" id="keyword-score">0%</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="keyword-progress"></div>
+                    </div>
+                </div>
+
+                <div class="score-item">
+                    <div class="score-header">
+                        <span>Skills Match</span>
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <circle cx="12" cy="8" r="7"></circle>
+                            <polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline>
+                        </svg>
+                    </div>
+                    <div class="score-value-large" id="skill-score">0%</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="skill-progress"></div>
+                    </div>
+                </div>
+
+                <div class="score-item">
+                    <div class="score-header">
+                        <span>Experience Indicators</span>
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
+                            <polyline points="17 6 23 6 23 12"></polyline>
+                        </svg>
+                    </div>
+                    <div class="score-value-large" id="experience-score">0%</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="experience-progress"></div>
+                    </div>
+                </div>
+
+                <div class="score-item">
+                    <div class="score-header">
+                        <span>Format & Structure</span>
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                    </div>
+                    <div class="score-value-large" id="format-score">0%</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="format-progress"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Keywords Analysis -->
+            <div class="card">
+                <h3 class="section-title">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    </svg>
+                    Keyword Analysis
+                </h3>
+                <div class="keyword-section">
+                    <h4 class="success-text">Found Keywords <span id="found-kw-count">(0)</span></h4>
+                    <div class="tag-container" id="found-keywords"></div>
+                </div>
+                <div class="keyword-section">
+                    <h4 class="error-text">Missing Keywords <span id="missing-kw-count">(0)</span></h4>
+                    <div class="tag-container" id="missing-keywords"></div>
+                </div>
+            </div>
+
+            <!-- Skills Analysis -->
+            <div class="card">
+                <h3 class="section-title">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <circle cx="12" cy="8" r="7"></circle>
+                        <polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline>
+                    </svg>
+                    Skills Assessment
+                </h3>
+                <div class="keyword-section">
+                    <h4 class="success-text">Found Skills</h4>
+                    <div class="tag-container" id="found-skills"></div>
+                </div>
+                <div class="keyword-section">
+                    <h4 class="error-text">Missing Skills to Add</h4>
+                    <div class="tag-container" id="missing-skills"></div>
+                </div>
+            </div>
+
+            <!-- Resume Sections -->
+            <div class="card">
+                <h3 class="section-title">Resume Sections</h3>
+                <div class="checklist-grid" id="sections-checklist"></div>
+            </div>
+
+            <!-- Contact Information -->
+            <div class="card">
+                <h3 class="section-title">Contact Information</h3>
+                <div class="checklist-grid" id="contact-checklist"></div>
+            </div>
+
+            <!-- Recommendations -->
+            <div class="card recommendations-card">
+                <h3 class="section-title">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="8" x2="12" y2="12"></line>
+                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                    </svg>
+                    Recommendations
+                </h3>
+                <ul class="recommendations-list" id="recommendations"></ul>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
